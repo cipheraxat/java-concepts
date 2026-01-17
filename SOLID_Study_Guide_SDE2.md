@@ -846,3 +846,94 @@ A: Simple scripts, prototypes, legacy code maintenance, performance-critical cod
 
 **Q: How do you refactor to SOLID?**
 A: Start with SRP (extract methods/classes), then OCP (introduce interfaces), LSP (fix inheritance), ISP (split interfaces), DIP (inject dependencies). Use TDD to guide the process.
+
+## Is-a vs Has-a Relationships: Inheritance vs Composition
+
+### Is-a Relationship (Inheritance)
+**Definition**: A subclass "is-a" type of its superclass. It represents a hierarchical relationship where the subclass inherits properties and behaviors from the superclass.
+
+**When to Use**: 
+- When there's a true hierarchical relationship
+- When subclasses share common behavior and state
+- When polymorphism is needed (Liskov Substitution Principle)
+
+**Java Implementation**: `extends` keyword for classes, `implements` for interfaces
+
+**Examples from SOLID:**
+```java
+// Good: WhatsApp IS-A SocialMediaInterface
+public class WhatsApp implements SocialMediaInterface {
+    // WhatsApp has all the behaviors of SocialMediaInterface
+}
+
+// Bad (violates LSP): Instagram IS-A SocialMedia but doesn't support all methods
+public class Instagram extends SocialMedia { // Wrong inheritance
+    public void groupVideoCall(String... users) {
+        // Not applicable - violates LSP
+    }
+}
+```
+
+**Interview Notes**: 
+- Use inheritance when the relationship will never change
+- Prefer interfaces over abstract classes for "is-a" relationships
+- Always check if LSP is maintained
+
+### Has-a Relationship (Composition)
+**Definition**: A class "has-a" instance of another class as a member. It represents a whole-part relationship where one object contains or is composed of other objects.
+
+**When to Use**:
+- When you want to reuse code without inheritance
+- When the relationship is dynamic and can change at runtime
+- When you want to avoid the limitations of single inheritance
+- When you need more flexibility than inheritance provides
+
+**Java Implementation**: Member variables, dependency injection, composition
+
+**Examples from SOLID:**
+```java
+// ShoppingMall HAS-A BankCard (composition)
+public class ShoppingMall {
+    private BankCard bankCard; // Has-a relationship
+    
+    public ShoppingMall(BankCard bankCard) { // Constructor injection
+        this.bankCard = bankCard;
+    }
+}
+
+// NotificationService HAS-A list of strategies (composition)
+public class NotificationService {
+    private List<NotificationStrategy> strategies; // Has-a relationship
+}
+```
+
+**Interview Notes**:
+- Composition is more flexible than inheritance
+- Allows runtime changes (Strategy pattern)
+- Avoids the diamond problem of multiple inheritance
+- Easier to test (can inject mocks)
+
+### Is-a vs Has-a: Decision Guide
+
+| Aspect | Is-a (Inheritance) | Has-a (Composition) |
+|--------|-------------------|-------------------|
+| **Relationship** | Hierarchical | Whole-part |
+| **Coupling** | Tight | Loose |
+| **Flexibility** | Low | High |
+| **Runtime Change** | Difficult | Easy |
+| **Code Reuse** | Through inheritance | Through delegation |
+| **SOLID Principle** | LSP must be maintained | DIP encourages this |
+
+**Common Interview Question**: "When would you use inheritance vs composition?"
+**Answer**: Use inheritance for "is-a" relationships where the subclass is truly a specialized version of the superclass and LSP is maintained. Use composition for "has-a" relationships when you need flexibility, runtime configurability, or to avoid inheritance's limitations.
+
+**Real-World Examples**:
+- **Is-a**: `ArrayList` is-a `List`, `Car` is-a `Vehicle`
+- **Has-a**: `Car` has-a `Engine`, `Computer` has-a `CPU`, `Restaurant` has-a `Menu`
+
+**In SOLID Context**:
+- **SRP**: Both can help, but composition often leads to smaller, focused classes
+- **OCP**: Composition enables extension through new components
+- **LSP**: Inheritance must maintain substitutability
+- **ISP**: Composition with interfaces avoids fat interfaces
+- **DIP**: Composition naturally leads to dependency on abstractions
