@@ -146,7 +146,34 @@ OCP prevents regression bugs and reduces the risk of introducing errors when add
 #### The "Bad" Way: Violation Example
 ```java
 // Violation: Adding new notification types requires modifying existing code
-// (Imagine a monolithic NotificationService with if-else for each type)
+public class NotificationService {
+    public void sendNotification(String type, String message) {
+        if (type.equals("email")) {
+            // Email logic
+            System.out.println("Sending email: " + message);
+            // Code to send email using SMTP
+        } else if (type.equals("sms")) {
+            // SMS logic
+            System.out.println("Sending SMS: " + message);
+            // Code to send SMS using Twilio API
+        } else if (type.equals("push")) {
+            // Push notification logic
+            System.out.println("Sending push notification: " + message);
+            // Code to send push notification using FCM
+        }
+        // To add WhatsApp notifications, we need to modify this class!
+    }
+}
+
+// Usage - tightly coupled and hard to extend
+public class OrderService {
+    private NotificationService notificationService = new NotificationService();
+
+    public void processOrder(Order order) {
+        // Process order logic...
+        notificationService.sendNotification("email", "Order confirmed: " + order.getId());
+    }
+}
 ```
 
 #### The "Good" Way: Refactored Implementation
@@ -440,7 +467,70 @@ ISP reduces coupling between classes and prevents clients from depending on meth
 #### The "Bad" Way: Violation Example
 ```java
 // Violation: Fat interface with unrelated methods
-// (Imagine a single Payment interface with all payment methods)
+public interface Worker {
+    void work();
+    void eat();
+    void sleep();
+}
+
+// Developer class - needs work() but doesn't really eat/sleep at work
+public class Developer implements Worker {
+    @Override
+    public void work() {
+        System.out.println("Writing code...");
+    }
+
+    @Override
+    public void eat() {
+        // Developers might eat at their desk, but this is forced
+        System.out.println("Eating lunch at desk...");
+    }
+
+    @Override
+    public void sleep() {
+        // This doesn't make sense for a developer at work!
+        throw new UnsupportedOperationException("Developers don't sleep at work!");
+    }
+}
+
+// Robot class - doesn't eat or sleep
+public class Robot implements Worker {
+    @Override
+    public void work() {
+        System.out.println("Processing data...");
+    }
+
+    @Override
+    public void eat() {
+        // Robots don't eat!
+        throw new UnsupportedOperationException("Robots don't eat!");
+    }
+
+    @Override
+    public void sleep() {
+        // Robots don't sleep!
+        throw new UnsupportedOperationException("Robots don't sleep!");
+    }
+}
+
+// Manager class - might not work the same way
+public class Manager implements Worker {
+    @Override
+    public void work() {
+        System.out.println("Managing team...");
+    }
+
+    @Override
+    public void eat() {
+        System.out.println("Eating in cafeteria...");
+    }
+
+    @Override
+    public void sleep() {
+        // Managers might take naps?
+        System.out.println("Taking a power nap...");
+    }
+}
 ```
 
 #### The "Good" Way: Refactored Implementation
@@ -588,7 +678,59 @@ DIP enables loose coupling, easier testing, and flexibility in swapping implemen
 #### The "Bad" Way: Violation Example
 ```java
 // Violation: High-level module depends directly on low-level modules
-// (Imagine ShoppingMall creating DebitCard or CreditCard directly)
+public class MySQLDatabase {
+    public void connect() {
+        System.out.println("Connecting to MySQL database...");
+    }
+
+    public void save(String data) {
+        System.out.println("Saving data to MySQL: " + data);
+    }
+}
+
+public class PostgreSQLDatabase {
+    public void connect() {
+        System.out.println("Connecting to PostgreSQL database...");
+    }
+
+    public void save(String data) {
+        System.out.println("Saving data to PostgreSQL: " + data);
+    }
+}
+
+// High-level module depends on concrete implementations
+public class UserService {
+    private MySQLDatabase database; // Tightly coupled to MySQL
+
+    public UserService() {
+        this.database = new MySQLDatabase(); // Direct instantiation
+    }
+
+    public void saveUser(String userData) {
+        database.connect();
+        database.save(userData);
+    }
+
+    // To switch to PostgreSQL, we need to modify UserService!
+    public void switchToPostgreSQL() {
+        // This violates OCP - we have to modify existing code
+        this.database = new PostgreSQLDatabase();
+    }
+}
+
+// Another high-level module with the same problem
+public class OrderService {
+    private MySQLDatabase database; // Again, tightly coupled
+
+    public OrderService() {
+        this.database = new MySQLDatabase();
+    }
+
+    public void saveOrder(String orderData) {
+        database.connect();
+        database.save(orderData);
+    }
+}
 ```
 
 #### The "Good" Way: Refactored Implementation
