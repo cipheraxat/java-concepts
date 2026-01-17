@@ -107,51 +107,29 @@ public class LoanService {
 
 ### UML/Visuals: Class Diagrams
 
-#### Before (Violation)
+#### SRP Compliant Design
 ```mermaid
 classDiagram
-    class Employee {
-        +saveToDatabase()
-        +calculateBonus()
-        +generateReport()
+    class BankService {
+        +deposit()
+        +withDraw()
     }
-    class PayrollSystem {
-        +processPayroll()
+    class NotificationService {
+        +sendOTP()
     }
-    PayrollSystem --> Employee
+    class PrinterService {
+        +printPassbook()
+    }
+    class LoanService {
+        +getLoanInterestInfo()
+    }
 ```
 
-#### After (SRP Compliant)
-```mermaid
-classDiagram
-    class Employee {
-        <<record>>
-    }
-    class EmployeeRepository {
-        <<interface>>
-        +save()
-        +findByName()
-        +findAll()
-    }
-    class DatabaseEmployeeRepository {
-        +save()
-    }
-    class PayrollService {
-        +calculateBonus()
-        +calculatePayroll()
-    }
-    class EmployeeReportGenerator {
-        +generateReport()
-        +generateBulkReport()
-    }
-    class PayrollSystem {
-        +processPayroll()
-    }
-    EmployeeRepository <|.. DatabaseEmployeeRepository
-    PayrollSystem --> EmployeeRepository
-    PayrollSystem --> PayrollService
-    PayrollSystem --> EmployeeReportGenerator
-```
+**Interview Notes on Classes vs Interfaces vs Abstract Classes:**
+- **Concrete Classes**: Use for complete implementations (like `BankService`). They can be instantiated and provide full functionality.
+- **Abstract Classes**: Use when you want to provide some default behavior but force subclasses to implement certain methods. Good for inheritance hierarchies where common state/behavior exists.
+- **Interfaces**: Use for contracts without implementation. Perfect for polymorphism and dependency injection. In Java 8+, interfaces can have default methods, but avoid overusing them.
+- **When to choose what**: Use interfaces for "has-a" relationships, abstract classes for "is-a" with shared implementation. Interfaces are preferred in modern Java for better testability and flexibility.
 
 ## Open-Closed Principle (OCP)
 
@@ -228,49 +206,36 @@ public class MobileNotificationService implements Notificationservice {
 
 ### UML/Visuals: Class Diagrams
 
-#### Before (Violation)
+#### OCP Compliant Design
 ```mermaid
 classDiagram
-    class AreaCalculator {
-        +calculateArea(Object)
+    class NotificationService {
+        <<interface>>
+        +sendOTP()
+        +sendTransactionReport()
     }
-    class Rectangle
-    class Circle
-    class Triangle
-    AreaCalculator --> Rectangle
-    AreaCalculator --> Circle
-    AreaCalculator --> Triangle
+    class EmailNotificationService {
+        +sendOTP()
+        +sendTransactionReport()
+    }
+    class WhatsAppNotificationService {
+        +sendOTP()
+        +sendTransactionReport()
+    }
+    class MobileNotificationService {
+        +sendOTP()
+        +sendTransactionReport()
+    }
+    NotificationService <|.. EmailNotificationService
+    NotificationService <|.. WhatsAppNotificationService
+    NotificationService <|.. MobileNotificationService
 ```
 
-#### After (OCP Compliant)
-```mermaid
-classDiagram
-    class Shape {
-        <<interface>>
-        +calculateArea() double
-    }
-    class Rectangle {
-        +calculateArea() double
-    }
-    class Circle {
-        +calculateArea() double
-    }
-    class Triangle {
-        +calculateArea() double
-    }
-    class Square {
-        +calculateArea() double
-    }
-    class AreaCalculator {
-        +calculateArea(Shape)
-        +calculateTotalArea(List~Shape~)
-    }
-    Shape <|.. Rectangle
-    Shape <|.. Circle
-    Shape <|.. Triangle
-    Shape <|.. Square
-    AreaCalculator --> Shape
-```
+**Interview Notes on OCP and Extensibility:**
+- **Strategy Pattern**: Often used with OCP - inject different strategies (implementations) at runtime.
+- **Plugin Architecture**: OCP enables systems where new features can be added as plugins without touching core code.
+- **Configuration over Code**: Use config files or dependency injection to choose implementations at runtime.
+- **Common Interview Question**: "How would you design a notification system that can easily add new channels?" Answer: Interface-based design with factory pattern.
 
 ## Liskov Substitution Principle (LSP)
 
@@ -391,49 +356,74 @@ public class Instagram implements SocialMedia,PostMediaManager{
 #### Before (Violation)
 ```mermaid
 classDiagram
-    class Rectangle {
-        +setWidth()
-        +setHeight()
-        +getArea()
+    class SocialMedia {
+        <<abstract>>
+        +chatWithFriend()
+        +publishPost()
+        +sendPhotosAndVideos()
+        +groupVideoCall()
     }
-    class Square {
-        +setWidth()
-        +setHeight()
-        +getArea()
+    class Facebook {
+        +chatWithFriend()
+        +publishPost()
+        +sendPhotosAndVideos()
+        +groupVideoCall()
     }
-    Rectangle <|-- Square
+    class Instagram {
+        +chatWithFriend()
+        +publishPost()
+        +sendPhotosAndVideos()
+        +groupVideoCall()
+    }
+    class Whatsapp {
+        +chatWithFriend()
+        +publishPost()
+        +sendPhotosAndVideos()
+        +groupVideoCall()
+    }
+    SocialMedia <|-- Facebook
+    SocialMedia <|-- Instagram
+    SocialMedia <|-- Whatsapp
 ```
 
 #### After (LSP Compliant)
 ```mermaid
 classDiagram
-    class Shape {
+    class SocialMediaInterface {
         <<interface>>
-        +getArea() double
+        +chatWithFriend()
+        +sendPhotosAndVideos()
     }
-    class Rectangle {
+    class PostMediaManager {
         <<interface>>
-        +getWidth() double
-        +getHeight() double
-        +setWidth(double)
-        +setHeight(double)
+        +publishPost()
     }
-    class Square {
+    class SocialVideoCallManager {
         <<interface>>
-        +getSide() double
-        +setSide(double)
+        +groupVideoCall()
     }
-    class SimpleRectangle {
-        +getArea() double
+    class WhatsApp {
+        +chatWithFriend()
+        +sendPhotosAndVideos()
+        +groupVideoCall()
     }
-    class SimpleSquare {
-        +getArea() double
+    class Instagram {
+        +chatWithFriend()
+        +sendPhotosAndVideos()
+        +publishPost()
     }
-    Shape <|.. Rectangle
-    Shape <|.. Square
-    Rectangle <|.. SimpleRectangle
-    Square <|.. SimpleSquare
+    SocialMediaInterface <|.. WhatsApp
+    SocialMediaInterface <|.. Instagram
+    PostMediaManager <|.. Instagram
+    SocialVideoCallManager <|.. WhatsApp
 ```
+
+**Interview Notes on LSP and Inheritance:**
+- **Composition over Inheritance**: When LSP is violated, prefer composition. Ask: "Should these classes really inherit, or should they compose?"
+- **Contract Design**: LSP is about behavioral contracts. Subtypes must honor the contract of the supertype.
+- **Common Violation**: Empty implementations or throwing UnsupportedOperationException.
+- **Tell-Don't-Ask**: Instead of checking types, design interfaces so clients don't need to know concrete types.
+- **Interview Question**: "How do you ensure LSP in your design?" Answer: Design by contract, comprehensive testing, avoid type checking.
 
 ## Interface Segregation Principle (ISP)
 
@@ -545,73 +535,43 @@ public class CafeteriaManager {
 
 ### UML/Visuals: Class Diagrams
 
-#### Before (Violation)
+#### ISP Compliant Design
 ```mermaid
 classDiagram
-    class Worker {
+    class UPIPayments {
         <<interface>>
-        +work()
-        +eat()
-        +sleep()
+        +payMoney()
+        +getScratchCard()
     }
-    class HumanWorker {
-        +work()
-        +eat()
-        +sleep()
+    class CashBackManager {
+        <<interface>>
+        +getCashBackAsCreditBalance()
     }
-    class RobotWorker {
-        +work()
-        +eat()
-        +sleep()
+    class GooglePay {
+        +payMoney()
+        +getScratchCard()
+        +getCashBackAsCreditBalance()
     }
-    Worker <|.. HumanWorker
-    Worker <|.. RobotWorker
+    class Paytm {
+        +payMoney()
+        +getScratchCard()
+    }
+    class Phonepe {
+        +payMoney()
+        +getScratchCard()
+    }
+    UPIPayments <|.. GooglePay
+    UPIPayments <|.. Paytm
+    UPIPayments <|.. Phonepe
+    CashBackManager <|.. GooglePay
 ```
 
-#### After (ISP Compliant)
-```mermaid
-classDiagram
-    class Worker {
-        <<interface>>
-        +getId()
-    }
-    class Workable {
-        <<interface>>
-        +work()
-    }
-    class Eatable {
-        <<interface>>
-        +eat()
-    }
-    class Sleepable {
-        <<interface>>
-        +sleep()
-    }
-    class HumanWorker {
-        +work()
-        +eat()
-        +sleep()
-        +getId()
-    }
-    class RobotWorker {
-        +work()
-        +getId()
-    }
-    class AdvancedRobotWorker {
-        +work()
-        +eat()
-        +getId()
-    }
-    Worker <|.. HumanWorker
-    Worker <|.. RobotWorker
-    Worker <|.. AdvancedRobotWorker
-    Workable <|.. HumanWorker
-    Workable <|.. RobotWorker
-    Workable <|.. AdvancedRobotWorker
-    Eatable <|.. HumanWorker
-    Eatable <|.. AdvancedRobotWorker
-    Sleepable <|.. HumanWorker
-```
+**Interview Notes on ISP and Interface Design:**
+- **Role Interfaces**: Design interfaces around client needs, not implementation capabilities.
+- **Multiple Inheritance Problem**: Java doesn't have multiple inheritance, but multiple interfaces solve this.
+- **Fat Interfaces**: Signs of violation - methods that throw exceptions or return null.
+- **Interface Pollution**: Avoid adding methods to interfaces just because one client needs them.
+- **Interview Question**: "How do you decide what methods go in an interface?" Answer: Group methods that are always used together by the same clients.
 
 ## Dependency Inversion Principle (DIP)
 
@@ -686,55 +646,34 @@ public class ShoppingMall {
 
 ### UML/Visuals: Class Diagrams
 
-#### Before (Violation)
+#### DIP Compliant Design
 ```mermaid
 classDiagram
-    class NotificationService {
-        +notify()
+    class BankCard {
+        <<interface>>
+        +doTransaction()
     }
-    class EmailService {
-        +sendEmail()
+    class DebitCard {
+        +doTransaction()
     }
-    class GmailMailer {
-        +send()
+    class CreditCard {
+        +doTransaction()
     }
-    NotificationService --> EmailService
-    EmailService --> GmailMailer
+    class ShoppingMall {
+        +doPurchaseSomething()
+    }
+    BankCard <|.. DebitCard
+    BankCard <|.. CreditCard
+    ShoppingMall --> BankCard
 ```
 
-#### After (DIP Compliant)
-```mermaid
-classDiagram
-    class MessageService {
-        <<interface>>
-        +sendMessage()
-    }
-    class Mailer {
-        <<interface>>
-        +send()
-    }
-    class NotificationService {
-        +notify()
-    }
-    class EmailService {
-        +sendMessage()
-    }
-    class GmailMailer {
-        +send()
-    }
-    class OutlookMailer {
-        +send()
-    }
-    class ServiceFactory {
-        +createNotificationService()
-    }
-    MessageService <|.. EmailService
-    Mailer <|.. GmailMailer
-    Mailer <|.. OutlookMailer
-    NotificationService --> MessageService
-    EmailService --> Mailer
-    ServiceFactory --> NotificationService
-```
+**Interview Notes on DIP and Dependency Management:**
+- **Dependency Injection**: Constructor, setter, or field injection. Frameworks like Spring make this easier.
+- **Inversion of Control (IoC)**: Don't call us, we'll call you. Frameworks control object lifecycle.
+- **Factory Pattern**: Often used with DIP to create appropriate implementations.
+- **Service Locator**: Alternative to DI, but less testable.
+- **Interview Question**: "How do you handle dependencies in your code?" Answer: Prefer constructor injection, use interfaces, avoid concrete class dependencies.
+- **Testing Benefits**: DIP makes unit testing easier by allowing mock injection.
 
 ## System Design Context
 
@@ -817,3 +756,93 @@ public class UserController {
    - DIP is a principle; DI is a pattern that implements DIP by injecting dependencies from outside.
 
 > **Pro Tip**: In interviews, always discuss trade-offs and when you might choose not to apply a principle. Show awareness of context and practical constraints.
+
+## Interview-Ready Notes: Interfaces, Abstract Classes, and Design Patterns
+
+### When to Use Interfaces vs Abstract Classes
+
+**Use Interfaces When:**
+- You want to define a contract without any implementation
+- Multiple inheritance is needed (Java doesn't support multiple inheritance with classes)
+- You want to achieve loose coupling and testability
+- The implementation can vary completely across different classes
+- You want to support polymorphism across unrelated classes
+
+**Use Abstract Classes When:**
+- You want to provide default implementations for some methods
+- You have common state or behavior that subclasses should inherit
+- You want to enforce a certain structure while allowing customization
+- All implementations share a common base functionality
+- You need to maintain state across the hierarchy
+
+**Interview Examples:**
+- **Interface**: `List` - multiple implementations (ArrayList, LinkedList) with different behaviors
+- **Abstract Class**: `AbstractList` - provides skeletal implementation for List interface
+
+### Common Design Patterns with SOLID
+
+**Strategy Pattern (OCP + DIP):**
+```java
+interface PaymentStrategy {
+    void pay(double amount);
+}
+class CreditCardStrategy implements PaymentStrategy { /* impl */ }
+class PayPalStrategy implements PaymentStrategy { /* impl */ }
+class PaymentProcessor {
+    private PaymentStrategy strategy;
+    // Constructor injection
+}
+```
+
+**Factory Pattern (DIP + OCP):**
+```java
+interface NotificationFactory {
+    NotificationService createService();
+}
+class EmailFactory implements NotificationFactory { /* returns EmailService */ }
+```
+
+**Template Method (OCP + LSP):**
+```java
+abstract class DataProcessor {
+    public final void process() {
+        readData();
+        processData();
+        saveData();
+    }
+    protected abstract void processData();
+}
+```
+
+### SOLID in Modern Java (Java 8+)
+
+**Default Methods in Interfaces:**
+- Allow adding methods to interfaces without breaking implementations
+- But use sparingly - can lead to diamond problem complexities
+- Good for optional enhancements
+
+**Functional Interfaces and Lambdas:**
+- Enable Strategy pattern without anonymous classes
+- Perfect for OCP implementations
+
+**Records (Java 14+):**
+- Immutable data classes
+- Automatically implement equals, hashCode, toString
+- Great for DTOs and value objects in SOLID designs
+
+### Common Interview Questions & Answers
+
+**Q: How do you choose between interface and abstract class?**
+A: Use interfaces for contracts and polymorphism. Use abstract classes when you need shared implementation or state. Prefer interfaces for better testability and flexibility.
+
+**Q: What happens if you violate LSP?**
+A: Code becomes fragile, clients need instanceof checks, breaks polymorphism. Leads to runtime errors and maintenance nightmares.
+
+**Q: How does DIP relate to testing?**
+A: DIP enables dependency injection, making it easy to inject mocks/stubs for unit testing. High cohesion, low coupling improves testability.
+
+**Q: When would you NOT apply SOLID?**
+A: Simple scripts, prototypes, legacy code maintenance, performance-critical code where abstraction overhead is costly, or when team size/constraints don't justify the complexity.
+
+**Q: How do you refactor to SOLID?**
+A: Start with SRP (extract methods/classes), then OCP (introduce interfaces), LSP (fix inheritance), ISP (split interfaces), DIP (inject dependencies). Use TDD to guide the process.
