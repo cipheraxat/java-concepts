@@ -625,30 +625,6 @@ public class Phonepe implements UPIPayments {
 
 }
 ```
-public class WorkManager {
-    private final List<Workable> workers;
-
-    public WorkManager(List<Workable> workers) {
-        this.workers = workers;
-    }
-
-    public void manageWork() {
-        workers.forEach(Workable::work);
-    }
-}
-
-public class CafeteriaManager {
-    private final List<Eatable> eaters;
-
-    public CafeteriaManager(List<Eatable> eaters) {
-        this.eaters = eaters;
-    }
-
-    public void serveLunch() {
-        eaters.forEach(Eatable::eat);
-    }
-}
-```
 
 ### SDE2 Focus: Edge Cases & Trade-offs
 - **When NOT to apply**: For stable, small interfaces or when splitting increases complexity unnecessarily
@@ -657,7 +633,45 @@ public class CafeteriaManager {
 
 ### UML/Visuals: Class Diagrams
 
-#### ISP Compliant Design
+#### Before (Violation)
+```mermaid
+classDiagram
+    class PaymentService {
+        <<interface>>
+        +payMoney()
+        +getScratchCard()
+        +getCashBackAsCreditBalance()
+        +processCardPayment()
+        +generateEMI()
+    }
+    class GooglePay {
+        +payMoney()
+        +getScratchCard()
+        +getCashBackAsCreditBalance()
+        +processCardPayment()
+        +generateEMI()
+    }
+    class Paytm {
+        +payMoney()
+        +getScratchCard()
+        +getCashBackAsCreditBalance()
+        +processCardPayment()*
+        +generateEMI()*
+    }
+    class Phonepe {
+        +payMoney()
+        +getScratchCard()
+        +getCashBackAsCreditBalance()*
+        +processCardPayment()*
+        +generateEMI()*
+    }
+    PaymentService <|.. GooglePay
+    PaymentService <|.. Paytm
+    PaymentService <|.. Phonepe
+```
+*Methods marked with * throw UnsupportedOperationException
+
+#### After (ISP Compliant)
 ```mermaid
 classDiagram
     class UPIPayments {
