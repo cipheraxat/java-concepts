@@ -466,13 +466,11 @@ ISP reduces coupling between classes and prevents clients from depending on meth
 
 #### The "Bad" Way: Violation Example
 ```java
-// Violation: Fat interface combining all payment methods
+// Violation: Fat interface combining UPI and cashback features
 public interface PaymentService {
     void payMoney();           // UPI payments
     void getScratchCard();     // UPI payments
     void getCashBackAsCreditBalance(); // Cashback feature
-    void processCardPayment(); // Card payments
-    void generateEMI();        // Loan/EMI feature
 }
 
 // Google Pay - supports all features
@@ -491,19 +489,9 @@ public class GooglePay implements PaymentService {
     public void getCashBackAsCreditBalance() {
         System.out.println("Google Pay: Applying cashback...");
     }
-
-    @Override
-    public void processCardPayment() {
-        System.out.println("Google Pay: Processing card payment...");
-    }
-
-    @Override
-    public void generateEMI() {
-        System.out.println("Google Pay: Generating EMI options...");
-    }
 }
 
-// Paytm - only supports UPI and cashback, but forced to implement card and EMI
+// Paytm - supports UPI payments but forced to implement cashback
 public class Paytm implements PaymentService {
     @Override
     public void payMoney() {
@@ -517,23 +505,12 @@ public class Paytm implements PaymentService {
 
     @Override
     public void getCashBackAsCreditBalance() {
-        System.out.println("Paytm: Applying cashback...");
-    }
-
-    @Override
-    public void processCardPayment() {
-        // Paytm doesn't support card payments!
-        throw new UnsupportedOperationException("Card payments not supported by Paytm");
-    }
-
-    @Override
-    public void generateEMI() {
-        // Paytm doesn't offer EMI services!
-        throw new UnsupportedOperationException("EMI services not available on Paytm");
+        // Paytm doesn't offer cashback as credit balance!
+        throw new UnsupportedOperationException("Cashback as credit balance not available on Paytm");
     }
 }
 
-// PhonePe - only supports UPI, but forced to implement cashback, card, and EMI
+// PhonePe - supports UPI payments but forced to implement cashback
 public class PhonePe implements PaymentService {
     @Override
     public void payMoney() {
@@ -547,20 +524,8 @@ public class PhonePe implements PaymentService {
 
     @Override
     public void getCashBackAsCreditBalance() {
-        // PhonePe doesn't offer cashback!
-        throw new UnsupportedOperationException("Cashback not available on PhonePe");
-    }
-
-    @Override
-    public void processCardPayment() {
-        // PhonePe doesn't support card payments!
-        throw new UnsupportedOperationException("Card payments not supported by PhonePe");
-    }
-
-    @Override
-    public void generateEMI() {
-        // PhonePe doesn't offer EMI!
-        throw new UnsupportedOperationException("EMI services not available on PhonePe");
+        // PhonePe doesn't offer cashback as credit balance!
+        throw new UnsupportedOperationException("Cashback as credit balance not available on PhonePe");
     }
 }
 ```
@@ -641,29 +606,21 @@ classDiagram
         +payMoney()
         +getScratchCard()
         +getCashBackAsCreditBalance()
-        +processCardPayment()
-        +generateEMI()
     }
     class GooglePay {
         +payMoney()
         +getScratchCard()
         +getCashBackAsCreditBalance()
-        +processCardPayment()
-        +generateEMI()
     }
     class Paytm {
         +payMoney()
         +getScratchCard()
-        +getCashBackAsCreditBalance()
-        +processCardPayment()*
-        +generateEMI()*
+        +getCashBackAsCreditBalance()*
     }
     class Phonepe {
         +payMoney()
         +getScratchCard()
         +getCashBackAsCreditBalance()*
-        +processCardPayment()*
-        +generateEMI()*
     }
     PaymentService <|.. GooglePay
     PaymentService <|.. Paytm
