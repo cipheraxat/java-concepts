@@ -32,41 +32,15 @@ SRP addresses code fragility and rigidity. Classes with multiple responsibilitie
 
 #### The "Bad" Way: Violation Example
 ```java
-// Violation: Employee class handles data, persistence, and reporting
-public class Employee {
-    private String name;
-    private double salary;
-
-    // Constructor and basic getters/setters omitted for brevity
-
-    // Responsibility 1: Data persistence
-    public void saveToDatabase(Connection conn) throws SQLException {
-        String sql = "INSERT INTO employees (name, salary) VALUES (?, ?)";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, this.name);
-            stmt.setDouble(2, this.salary);
-            stmt.executeUpdate();
+// Violation: NotificationService handles multiple notification types
+public class NotificationService {
+    public void sendOTP(String medium) {
+        if (medium.equals("email")) {
+            //write email related logic
+            //use JavaMailSenderAPI
         }
-    }
-
-    // Responsibility 2: Business logic
-    public double calculateBonus() {
-        return this.salary * 0.1; // 10% bonus calculation
-    }
-
-    // Responsibility 3: Reporting
-    public String generateReport() {
-        return String.format("Employee: %s, Salary: %.2f, Bonus: %.2f",
-                           this.name, this.salary, calculateBonus());
-    }
-}
-
-// Usage: Tightly coupled, hard to test individual concerns
-public class PayrollSystem {
-    public void processPayroll(List<Employee> employees, Connection conn) throws SQLException {
-        for (Employee emp : employees) {
-            emp.saveToDatabase(conn); // Direct database coupling
-            System.out.println(emp.generateReport()); // Mixed concerns
+        if(medium.equals("mobile")){
+            //write logic using twillio API
         }
     }
 }
@@ -74,89 +48,54 @@ public class PayrollSystem {
 
 #### The "Good" Way: Refactored Implementation
 ```java
-// Modern Java: Using Records for immutable data
-public record Employee(String name, double salary) {
-    // Records automatically provide constructor, getters, equals, hashCode, toString
-}
+// Responsibility: Handle bank deposits and withdrawals
+public class BankService {
 
-// Responsibility 1: Data persistence - Repository pattern
-public interface EmployeeRepository {
-    void save(Employee employee);
-    Optional<Employee> findByName(String name);
-    List<Employee> findAll();
-}
-
-public class DatabaseEmployeeRepository implements EmployeeRepository {
-    private final DataSource dataSource; // Dependency injection
-
-    public DatabaseEmployeeRepository(DataSource dataSource) {
-        this.dataSource = dataSource;
+    public long deposit(long amount, String accountNo) {
+        //deposit amount
+        return 0;
     }
 
-    @Override
-    public void save(Employee employee) {
-        String sql = "INSERT INTO employees (name, salary) VALUES (?, ?)";
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, employee.name());
-            stmt.setDouble(2, employee.salary());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to save employee", e);
+    public long withDraw(long amount, String accountNo) {
+        //withdraw amount
+        return 0;
+    }
+}
+
+// Responsibility: Send notifications via different mediums
+public class NotificationService {
+    public void sendOTP(String medium) {
+        if (medium.equals("email")) {
+            //write email related logic
+            //use JavaMailSenderAPI
+        }
+        if(medium.equals("mobile")){
+            //write logic using twillio API
         }
     }
-
-    // Other methods implemented...
 }
 
-// Responsibility 2: Business logic - Service layer
-public class PayrollService {
-    public double calculateBonus(Employee employee) {
-        // Business rules can be complex and testable in isolation
-        return employee.salary() * 0.1;
-    }
+// Responsibility: Print passbook
+public class PrinterService {
 
-    public List<PayrollRecord> calculatePayroll(List<Employee> employees) {
-        return employees.stream()
-                .map(emp -> new PayrollRecord(emp, calculateBonus(emp)))
-                .toList();
+    public void printPassbook() {
+        //update transaction info in passbook
     }
 }
 
-// Responsibility 3: Reporting - Separate concern
-public class EmployeeReportGenerator {
-    public String generateReport(Employee employee, double bonus) {
-        return String.format("Employee: %s, Salary: %.2f, Bonus: %.2f",
-                           employee.name(), employee.salary(), bonus);
-    }
+// Responsibility: Provide loan interest information
+public class LoanService {
 
-    public String generateBulkReport(List<PayrollRecord> records) {
-        return records.stream()
-                .map(record -> generateReport(record.employee(), record.bonus()))
-                .collect(Collectors.joining("\n"));
-    }
-}
-
-// Usage: Clean separation of concerns
-public class PayrollSystem {
-    private final EmployeeRepository repository;
-    private final PayrollService payrollService;
-    private final EmployeeReportGenerator reportGenerator;
-
-    public PayrollSystem(EmployeeRepository repository,
-                        PayrollService payrollService,
-                        EmployeeReportGenerator reportGenerator) {
-        this.repository = repository;
-        this.payrollService = payrollService;
-        this.reportGenerator = reportGenerator;
-    }
-
-    public void processPayroll(List<Employee> employees) {
-        // Each component does one thing
-        employees.forEach(repository::save);
-        var payrollRecords = payrollService.calculatePayroll(employees);
-        var report = reportGenerator.generateBulkReport(payrollRecords);
-        System.out.println(report);
+    public void getLoanInterestInfo(String loanType) {
+        if (loanType.equals("homeLoan")) {
+            //do some job
+        }
+        if (loanType.equals("personalLoan")) {
+            //do some job
+        }
+        if (loanType.equals("car")) {
+            //do some job
+        }
     }
 }
 ```
@@ -228,87 +167,56 @@ OCP prevents regression bugs and reduces the risk of introducing errors when add
 
 #### The "Bad" Way: Violation Example
 ```java
-// Violation: Adding new shapes requires modifying existing code
-public class AreaCalculator {
-    public double calculateArea(Object shape) {
-        if (shape instanceof Rectangle) {
-            Rectangle rect = (Rectangle) shape;
-            return rect.getWidth() * rect.getHeight();
-        } else if (shape instanceof Circle) {
-            Circle circle = (Circle) shape;
-            return Math.PI * Math.pow(circle.getRadius(), 2);
-        } else if (shape instanceof Triangle) {
-            Triangle triangle = (Triangle) shape;
-            return 0.5 * triangle.getBase() * triangle.getHeight();
-        }
-        throw new IllegalArgumentException("Unsupported shape");
-    }
-}
-
-// Adding a new shape breaks OCP
-public class Rectangle { /* getters/setters */ }
-public class Circle { /* getters/setters */ }
-public class Triangle { /* getters/setters */ }
+// Violation: Adding new notification types requires modifying existing code
+// (Imagine a monolithic NotificationService with if-else for each type)
 ```
 
 #### The "Good" Way: Refactored Implementation
 ```java
-// Abstraction: Shape interface
-public interface Shape {
-    double calculateArea();
+// Abstraction: Notification service interface - open for extension
+public interface Notificationservice {
+
+    public void sendOTP(String medium);
+
+    public void sendTransactionReport(String medium);
+
 }
 
-// Concrete implementations
-public record Rectangle(double width, double height) implements Shape {
-    @Override
-    public double calculateArea() {
-        return width * height;
+// Email notification implementation
+public class EmailNotificationService implements Notificationservice {
+    public void sendOTP(String medium) {
+        //write logic to integrate with email api
+
     }
-}
 
-public record Circle(double radius) implements Shape {
-    @Override
-    public double calculateArea() {
-        return Math.PI * radius * radius;
-    }
-}
-
-public record Triangle(double base, double height) implements Shape {
-    @Override
-    public double calculateArea() {
-        return 0.5 * base * height;
+    public void sendTransactionReport(String medium) {
+        //write logic to integrate with email api
     }
 }
 
-// New shape: Easy extension without modification
-public record Square(double side) implements Shape {
-    @Override
-    public double calculateArea() {
-        return side * side;
+// WhatsApp notification implementation
+public class WhatsAppNotificationService implements Notificationservice {
+
+    public void sendOTP(String medium) {
+        //logic to integrate whatsapp api
+    }
+
+    public void sendTransactionReport(String medium) {
+//logic to integrate whatsapp api
     }
 }
 
-// OCP-compliant calculator
-public class AreaCalculator {
-    public double calculateArea(Shape shape) {
-        return shape.calculateArea();
+// Mobile notification implementation
+public class MobileNotificationService implements Notificationservice {
+    public void sendOTP(String medium) {
+        //write the logic to send otp to mobile
+        //twillo api
+
     }
 
-    // Modern Java: Streams for bulk operations
-    public double calculateTotalArea(List<Shape> shapes) {
-        return shapes.stream()
-                .mapToDouble(Shape::calculateArea)
-                .sum();
-    }
-
-    // Functional interface for custom calculations
-    public double calculateWithFilter(List<Shape> shapes,
-                                    Predicate<Shape> filter,
-                                    Function<Shape, Double> calculator) {
-        return shapes.stream()
-                .filter(filter)
-                .mapToDouble(calculator::apply)
-                .sum();
+    public void sendTransactionReport(String medium) {
+        //write the logic to send otp to mobile
+        //twillo api
     }
 }
 ```
@@ -378,118 +286,91 @@ LSP ensures behavioral subtyping, preventing unexpected behavior in polymorphic 
 
 #### The "Bad" Way: Violation Example
 ```java
-// Violation: Square breaks Rectangle's behavior
-public class Rectangle {
-    protected double width;
-    protected double height;
+// Violation: Subclasses don't support all parent methods properly
+public abstract class SocialMedia {
 
-    public void setWidth(double width) {
-        this.width = width;
-    }
+    //@support WhatsApp,Facebook,Instagram
+    public abstract  void chatWithFriend();
 
-    public void setHeight(double height) {
-        this.height = height;
-    }
+    //@support Facebook,Instagram
+    public abstract void publishPost(Object post);
 
-    public double getArea() {
-        return width * height;
-    }
+    //@support WhatsApp,Facebook,Instagram
+    public abstract  void sendPhotosAndVideos();
+
+    //@support WhatsApp,Facebook
+    public abstract  void groupVideoCall(String... users);
 }
 
-public class Square extends Rectangle {
-    @Override
-    public void setWidth(double width) {
-        super.setWidth(width);
-        super.setHeight(width); // Violates LSP: changes height when setting width
+public class Instagram extends SocialMedia {
+
+    public void chatWithFriend() {
+
     }
 
-    @Override
-    public void setHeight(double height) {
-        super.setWidth(height); // Violates LSP: changes width when setting height
-        super.setHeight(height);
-    }
-}
+    public void publishPost(Object post) {
 
-// Client code that expects Rectangle behavior
-public class AreaCalculator {
-    public void printArea(Rectangle rect) {
-        rect.setWidth(5);
-        rect.setHeight(10);
-        System.out.println("Expected: 50, Actual: " + rect.getArea());
+    }
+
+    public void sendPhotosAndVideos() {
+
+    }
+
+    public void groupVideoCall(String... users) {
+//not applicable
     }
 }
 ```
 
 #### The "Good" Way: Refactored Implementation
 ```java
-// Proper abstraction hierarchy
-public interface Shape {
-    double getArea();
+// Proper abstraction: Segregated interfaces
+public interface SocialMedia {
+
+    public   void chatWithFriend();
+
+    public   void sendPhotosAndVideos();
+
 }
 
-public interface Rectangle extends Shape {
-    double getWidth();
-    double getHeight();
-    void setWidth(double width);
-    void setHeight(double height);
+public interface PostMediaManager {
+
+    public  void publishPost(Object post);
 }
 
-public interface Square extends Shape {
-    double getSide();
-    void setSide(double side);
+public interface SocialVideoCallManager {
+    public void groupVideoCall(String... users);
 }
 
-// LSP-compliant Rectangle implementation
-public class SimpleRectangle implements Rectangle {
-    private double width;
-    private double height;
+public class WhatsApp implements SocialMedia,SocialVideoCallManager {
+    public void chatWithFriend() {
 
-    public SimpleRectangle(double width, double height) {
-        this.width = width;
-        this.height = height;
     }
 
-    @Override
-    public double getWidth() { return width; }
+    public void sendPhotosAndVideos() {
 
-    @Override
-    public double getHeight() { return height; }
-
-    @Override
-    public void setWidth(double width) { this.width = width; }
-
-    @Override
-    public void setHeight(double height) { this.height = height; }
-
-    @Override
-    public double getArea() { return width * height; }
-}
-
-// LSP-compliant Square implementation
-public class SimpleSquare implements Square {
-    private double side;
-
-    public SimpleSquare(double side) {
-        this.side = side;
     }
 
-    @Override
-    public double getSide() { return side; }
+    public void groupVideoCall(String... users) {
 
-    @Override
-    public void setSide(double side) { this.side = side; }
-
-    @Override
-    public double getArea() { return side * side; }
+    }
 }
 
-// Generic shape processor - works with any Shape
-public class ShapeProcessor {
-    public void processShape(Shape shape) {
-        System.out.println("Area: " + shape.getArea());
+public class Instagram implements SocialMedia,PostMediaManager{
+
+    public void publishPost(Object post) {
+
     }
 
-    // Modern Java: Pattern matching (preview feature)
+    public void chatWithFriend() {
+
+    }
+
+    public void sendPhotosAndVideos() {
+
+    }
+}
+```
     public void processShapeWithPattern(Object obj) {
         if (obj instanceof Rectangle rect) {
             System.out.println("Rectangle: " + rect.getWidth() + "x" + rect.getHeight());
@@ -569,104 +450,69 @@ ISP reduces coupling between classes and prevents clients from depending on meth
 #### The "Bad" Way: Violation Example
 ```java
 // Violation: Fat interface with unrelated methods
-public interface Worker {
-    void work();
-    void eat();
-    void sleep();
-}
-
-// Human worker needs all methods
-public class HumanWorker implements Worker {
-    @Override
-    public void work() { System.out.println("Human working"); }
-
-    @Override
-    public void eat() { System.out.println("Human eating"); }
-
-    @Override
-    public void sleep() { System.out.println("Human sleeping"); }
-}
-
-// Robot worker doesn't need eat/sleep
-public class RobotWorker implements Worker {
-    @Override
-    public void work() { System.out.println("Robot working"); }
-
-    @Override
-    public void eat() { throw new UnsupportedOperationException(); }
-
-    @Override
-    public void sleep() { throw new UnsupportedOperationException(); }
-}
+// (Imagine a single Payment interface with all payment methods)
 ```
 
 #### The "Good" Way: Refactored Implementation
 ```java
-// Segregated interfaces
-public interface Workable {
-    void work();
+// Segregated interfaces for different payment features
+public interface UPIPayments {
+
+    public void payMoney();
+
+    public void getScratchCard();
+
+
 }
 
-public interface Eatable {
-    void eat();
+public interface CashBackManager {
+
+    public void getCashBackAsCreditBalance();
 }
 
-public interface Sleepable {
-    void sleep();
+// Google Pay implements both interfaces
+public class GooglePay implements UPIPayments,CashBackManager {
+
+    public void payMoney() {
+
+    }
+
+    public void getScratchCard() {
+
+    }
+
+    public void getCashBackAsCreditBalance() {
+      //this features is there in gpay
+    }
 }
 
-// Modern Java: Sealed classes for controlled inheritance (Java 17+)
-public sealed interface Worker permits HumanWorker, RobotWorker, AdvancedRobotWorker {
-    // Common worker properties if needed
-    String getId();
+// Paytm implements only UPIPayments
+public class Paytm implements UPIPayments {
+
+    public void payMoney() {
+
+    }
+
+    public void getScratchCard() {
+
+    }
+
+
 }
 
-public final class HumanWorker implements Worker, Workable, Eatable, Sleepable {
-    private final String id;
+// Phonepe implements only UPIPayments
+public class Phonepe implements UPIPayments {
+    public void payMoney() {
 
-    public HumanWorker(String id) { this.id = id; }
+    }
 
-    @Override
-    public String getId() { return id; }
+    public void getScratchCard() {
 
-    @Override
-    public void work() { System.out.println("Human working"); }
+    }
 
-    @Override
-    public void eat() { System.out.println("Human eating"); }
 
-    @Override
-    public void sleep() { System.out.println("Human sleeping"); }
 }
-
-public final class RobotWorker implements Worker, Workable {
-    private final String id;
-
-    public RobotWorker(String id) { this.id = id; }
-
-    @Override
-    public String getId() { return id; }
-
-    @Override
-    public void work() { System.out.println("Robot working"); }
-}
-
-public final class AdvancedRobotWorker implements Worker, Workable, Eatable {
-    private final String id;
-
-    public AdvancedRobotWorker(String id) { this.id = id; }
-
-    @Override
-    public String getId() { return id; }
-
-    @Override
-    public void work() { System.out.println("Advanced robot working"); }
-
-    @Override
-    public void eat() { System.out.println("Advanced robot recharging"); }
-}
-
-// Usage: Clients depend only on what they need
+```
 public class WorkManager {
     private final List<Workable> workers;
 
@@ -781,128 +627,56 @@ DIP enables loose coupling, easier testing, and flexibility in swapping implemen
 
 #### The "Bad" Way: Violation Example
 ```java
-// Violation: High-level module depends on low-level module
-public class EmailService {
-    private final GmailMailer mailer; // Direct dependency on concrete class
-
-    public EmailService() {
-        this.mailer = new GmailMailer(); // Tight coupling
-    }
-
-    public void sendEmail(String message) {
-        mailer.send(message);
-    }
-}
-
-public class GmailMailer {
-    public void send(String message) {
-        System.out.println("Sending via Gmail: " + message);
-    }
-}
-
-// High-level module depends on low-level details
-public class NotificationService {
-    private final EmailService emailService;
-
-    public NotificationService() {
-        this.emailService = new EmailService(); // Can't test or change easily
-    }
-
-    public void notify(String message) {
-        emailService.sendEmail(message);
-    }
-}
+// Violation: High-level module depends directly on low-level modules
+// (Imagine ShoppingMall creating DebitCard or CreditCard directly)
 ```
 
 #### The "Good" Way: Refactored Implementation
 ```java
-// Abstractions: Interfaces for dependencies
-public interface MessageService {
-    void sendMessage(String message);
+// Abstraction: BankCard interface
+public interface BankCard {
+
+    public void doTransaction(long amount);
 }
 
-public interface Mailer {
-    void send(String message);
-}
+// Low-level modules: Concrete implementations
+public class DebitCard implements BankCard{
 
-// Low-level modules implement abstractions
-public class GmailMailer implements Mailer {
-    @Override
-    public void send(String message) {
-        System.out.println("Sending via Gmail: " + message);
+    public void doTransaction(long amount){
+        System.out.println("payment using Debit card");
     }
 }
 
-public class OutlookMailer implements Mailer {
-    @Override
-    public void send(String message) {
-        System.out.println("Sending via Outlook: " + message);
+public class CreditCard implements BankCard{
+
+    public void doTransaction(long amount){
+        System.out.println("payment using Credit card");
     }
 }
 
-public class EmailService implements MessageService {
-    private final Mailer mailer;
+// High-level module: Depends on abstraction, not concrete classes
+public class ShoppingMall {
 
-    // Dependency injection via constructor
-    public EmailService(Mailer mailer) {
-        this.mailer = mailer;
+    private BankCard bankCard;
+
+    public ShoppingMall(BankCard bankCard) {
+        this.bankCard = bankCard;
     }
 
-    @Override
-    public void sendMessage(String message) {
-        mailer.send(message);
-    }
-}
-
-// High-level module depends on abstractions
-public class NotificationService {
-    private final MessageService messageService;
-
-    public NotificationService(MessageService messageService) {
-        this.messageService = messageService;
+    public void doPurchaseSomething(long amount){
+        bankCard.doTransaction(amount);
     }
 
-    public void notify(String message) {
-        messageService.sendMessage(message);
+    public static void main(String[] args) {
+       // DebitCard debitCard=new DebitCard();
+       // CreditCard creditCard=new CreditCard();
+
+        BankCard bankCard=new CreditCard();
+        ShoppingMall shoppingMall=new ShoppingMall(bankCard);
+        shoppingMall.doPurchaseSomething(5000);
     }
 }
-
-// Modern Java: Records for configuration
-public record NotificationConfig(String smtpHost, int port, String protocol) {}
-
-// Factory for creating services with dependencies
-public class ServiceFactory {
-    public static NotificationService createNotificationService(Mailer mailer) {
-        MessageService emailService = new EmailService(mailer);
-        return new NotificationService(emailService);
-    }
-
-    // Using Optional for optional dependencies
-    public static NotificationService createWithFallback(Mailer primary, Optional<Mailer> fallback) {
-        MessageService service = new CompositeMessageService(primary, fallback);
-        return new NotificationService(service);
-    }
-}
-
-// Composite pattern for multiple implementations
-public class CompositeMessageService implements MessageService {
-    private final Mailer primary;
-    private final Optional<Mailer> fallback;
-
-    public CompositeMessageService(Mailer primary, Optional<Mailer> fallback) {
-        this.primary = primary;
-        this.fallback = fallback;
-    }
-
-    @Override
-    public void sendMessage(String message) {
-        try {
-            primary.send(message);
-        } catch (Exception e) {
-            fallback.ifPresent(mailer -> mailer.send(message));
-        }
-    }
-}
+```
 ```
 
 ### SDE2 Focus: Edge Cases & Trade-offs
