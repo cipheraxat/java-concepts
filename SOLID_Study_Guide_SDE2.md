@@ -466,11 +466,13 @@ ISP reduces coupling between classes and prevents clients from depending on meth
 
 #### The "Bad" Way: Violation Example
 ```java
-// Violation: Fat interface combining UPI and cashback features
+// Violation: Fat interface combining all payment methods
 public interface PaymentService {
     void payMoney();           // UPI payments
     void getScratchCard();     // UPI payments
     void getCashBackAsCreditBalance(); // Cashback feature
+    void processCardPayment(); // Card payments
+    void generateEMI();        // Loan/EMI feature
 }
 
 // Google Pay - supports all features
@@ -489,9 +491,19 @@ public class GooglePay implements PaymentService {
     public void getCashBackAsCreditBalance() {
         System.out.println("Google Pay: Applying cashback...");
     }
+
+    @Override
+    public void processCardPayment() {
+        System.out.println("Google Pay: Processing card payment...");
+    }
+
+    @Override
+    public void generateEMI() {
+        System.out.println("Google Pay: Generating EMI options...");
+    }
 }
 
-// Paytm - supports UPI payments but forced to implement cashback
+// Paytm - only supports UPI and cashback, but forced to implement card and EMI
 public class Paytm implements PaymentService {
     @Override
     public void payMoney() {
@@ -505,12 +517,23 @@ public class Paytm implements PaymentService {
 
     @Override
     public void getCashBackAsCreditBalance() {
-        // Paytm doesn't offer cashback as credit balance!
-        throw new UnsupportedOperationException("Cashback as credit balance not available on Paytm");
+        System.out.println("Paytm: Applying cashback...");
+    }
+
+    @Override
+    public void processCardPayment() {
+        // Paytm doesn't support card payments!
+        throw new UnsupportedOperationException("Card payments not supported by Paytm");
+    }
+
+    @Override
+    public void generateEMI() {
+        // Paytm doesn't offer EMI services!
+        throw new UnsupportedOperationException("EMI services not available on Paytm");
     }
 }
 
-// PhonePe - supports UPI payments but forced to implement cashback
+// PhonePe - only supports UPI, but forced to implement cashback, card, and EMI
 public class PhonePe implements PaymentService {
     @Override
     public void payMoney() {
@@ -524,8 +547,20 @@ public class PhonePe implements PaymentService {
 
     @Override
     public void getCashBackAsCreditBalance() {
-        // PhonePe doesn't offer cashback as credit balance!
-        throw new UnsupportedOperationException("Cashback as credit balance not available on PhonePe");
+        // PhonePe doesn't offer cashback!
+        throw new UnsupportedOperationException("Cashback not available on PhonePe");
+    }
+
+    @Override
+    public void processCardPayment() {
+        // PhonePe doesn't support card payments!
+        throw new UnsupportedOperationException("Card payments not supported by PhonePe");
+    }
+
+    @Override
+    public void generateEMI() {
+        // PhonePe doesn't offer EMI!
+        throw new UnsupportedOperationException("EMI services not available on PhonePe");
     }
 }
 ```
@@ -606,21 +641,29 @@ classDiagram
         +payMoney()
         +getScratchCard()
         +getCashBackAsCreditBalance()
+        +processCardPayment()
+        +generateEMI()
     }
     class GooglePay {
         +payMoney()
         +getScratchCard()
         +getCashBackAsCreditBalance()
+        +processCardPayment()
+        +generateEMI()
     }
     class Paytm {
         +payMoney()
         +getScratchCard()
-        +getCashBackAsCreditBalance()*
+        +getCashBackAsCreditBalance()
+        +processCardPayment()*
+        +generateEMI()*
     }
     class Phonepe {
         +payMoney()
         +getScratchCard()
         +getCashBackAsCreditBalance()*
+        +processCardPayment()*
+        +generateEMI()*
     }
     PaymentService <|.. GooglePay
     PaymentService <|.. Paytm
@@ -681,57 +724,52 @@ DIP enables loose coupling, easier testing, and flexibility in swapping implemen
 #### The "Bad" Way: Violation Example
 ```java
 // Violation: High-level module depends directly on low-level modules
-public class MySQLDatabase {
-    public void connect() {
-        System.out.println("Connecting to MySQL database...");
-    }
-
-    public void save(String data) {
-        System.out.println("Saving data to MySQL: " + data);
+public class DebitCard {
+    public void doTransaction(long amount) {
+        System.out.println("Payment using Debit card: $" + amount);
     }
 }
 
-public class PostgreSQLDatabase {
-    public void connect() {
-        System.out.println("Connecting to PostgreSQL database...");
-    }
-
-    public void save(String data) {
-        System.out.println("Saving data to PostgreSQL: " + data);
+public class CreditCard {
+    public void doTransaction(long amount) {
+        System.out.println("Payment using Credit card: $" + amount);
     }
 }
 
 // High-level module depends on concrete implementations
-public class UserService {
-    private MySQLDatabase database; // Tightly coupled to MySQL
+public class ShoppingMall {
+    private DebitCard debitCard; // Tightly coupled to DebitCard
 
-    public UserService() {
-        this.database = new MySQLDatabase(); // Direct instantiation
+    public ShoppingMall() {
+        this.debitCard = new DebitCard(); // Direct instantiation of concrete class
     }
 
-    public void saveUser(String userData) {
-        database.connect();
-        database.save(userData);
+    public void doPurchaseSomething(long amount) {
+        debitCard.doTransaction(amount);
     }
 
-    // To switch to PostgreSQL, we need to modify UserService!
-    public void switchToPostgreSQL() {
+    // To support credit cards, we need to modify ShoppingMall!
+    public void switchToCreditCard() {
         // This violates OCP - we have to modify existing code
-        this.database = new PostgreSQLDatabase();
+        // We can't easily switch payment methods without changing this class
+    }
+
+    public static void main(String[] args) {
+        ShoppingMall mall = new ShoppingMall();
+        mall.doPurchaseSomething(5000); // Always uses debit card
     }
 }
 
-// Another high-level module with the same problem
-public class OrderService {
-    private MySQLDatabase database; // Again, tightly coupled
+// Another high-level module with the same coupling problem
+public class OnlineStore {
+    private CreditCard creditCard; // Tightly coupled to CreditCard
 
-    public OrderService() {
-        this.database = new MySQLDatabase();
+    public OnlineStore() {
+        this.creditCard = new CreditCard(); // Direct instantiation
     }
 
-    public void saveOrder(String orderData) {
-        database.connect();
-        database.save(orderData);
+    public void processPayment(long amount) {
+        creditCard.doTransaction(amount);
     }
 }
 ```
@@ -791,7 +829,28 @@ public class ShoppingMall {
 
 ### UML/Visuals: Class Diagrams
 
-#### DIP Compliant Design
+#### Before (Violation)
+```mermaid
+classDiagram
+    class DebitCard {
+        +doTransaction()
+    }
+    class CreditCard {
+        +doTransaction()
+    }
+    class ShoppingMall {
+        -debitCard: DebitCard
+        +doPurchaseSomething()
+    }
+    class OnlineStore {
+        -creditCard: CreditCard
+        +processPayment()
+    }
+    ShoppingMall --> DebitCard
+    OnlineStore --> CreditCard
+```
+
+#### After (DIP Compliant)
 ```mermaid
 classDiagram
     class BankCard {
@@ -805,6 +864,7 @@ classDiagram
         +doTransaction()
     }
     class ShoppingMall {
+        -bankCard: BankCard
         +doPurchaseSomething()
     }
     BankCard <|.. DebitCard
