@@ -466,69 +466,101 @@ ISP reduces coupling between classes and prevents clients from depending on meth
 
 #### The "Bad" Way: Violation Example
 ```java
-// Violation: Fat interface with unrelated methods
-public interface Worker {
-    void work();
-    void eat();
-    void sleep();
+// Violation: Fat interface combining all payment methods
+public interface PaymentService {
+    void payMoney();           // UPI payments
+    void getScratchCard();     // UPI payments
+    void getCashBackAsCreditBalance(); // Cashback feature
+    void processCardPayment(); // Card payments
+    void generateEMI();        // Loan/EMI feature
 }
 
-// Developer class - needs work() but doesn't really eat/sleep at work
-public class Developer implements Worker {
+// Google Pay - supports all features
+public class GooglePay implements PaymentService {
     @Override
-    public void work() {
-        System.out.println("Writing code...");
+    public void payMoney() {
+        System.out.println("Google Pay: Processing UPI payment...");
     }
 
     @Override
-    public void eat() {
-        // Developers might eat at their desk, but this is forced
-        System.out.println("Eating lunch at desk...");
+    public void getScratchCard() {
+        System.out.println("Google Pay: Generating scratch card...");
     }
 
     @Override
-    public void sleep() {
-        // This doesn't make sense for a developer at work!
-        throw new UnsupportedOperationException("Developers don't sleep at work!");
-    }
-}
-
-// Robot class - doesn't eat or sleep
-public class Robot implements Worker {
-    @Override
-    public void work() {
-        System.out.println("Processing data...");
+    public void getCashBackAsCreditBalance() {
+        System.out.println("Google Pay: Applying cashback...");
     }
 
     @Override
-    public void eat() {
-        // Robots don't eat!
-        throw new UnsupportedOperationException("Robots don't eat!");
+    public void processCardPayment() {
+        System.out.println("Google Pay: Processing card payment...");
     }
 
     @Override
-    public void sleep() {
-        // Robots don't sleep!
-        throw new UnsupportedOperationException("Robots don't sleep!");
+    public void generateEMI() {
+        System.out.println("Google Pay: Generating EMI options...");
     }
 }
 
-// Manager class - might not work the same way
-public class Manager implements Worker {
+// Paytm - only supports UPI and cashback, but forced to implement card and EMI
+public class Paytm implements PaymentService {
     @Override
-    public void work() {
-        System.out.println("Managing team...");
+    public void payMoney() {
+        System.out.println("Paytm: Processing UPI payment...");
     }
 
     @Override
-    public void eat() {
-        System.out.println("Eating in cafeteria...");
+    public void getScratchCard() {
+        System.out.println("Paytm: Generating scratch card...");
     }
 
     @Override
-    public void sleep() {
-        // Managers might take naps?
-        System.out.println("Taking a power nap...");
+    public void getCashBackAsCreditBalance() {
+        System.out.println("Paytm: Applying cashback...");
+    }
+
+    @Override
+    public void processCardPayment() {
+        // Paytm doesn't support card payments!
+        throw new UnsupportedOperationException("Card payments not supported by Paytm");
+    }
+
+    @Override
+    public void generateEMI() {
+        // Paytm doesn't offer EMI services!
+        throw new UnsupportedOperationException("EMI services not available on Paytm");
+    }
+}
+
+// PhonePe - only supports UPI, but forced to implement cashback, card, and EMI
+public class PhonePe implements PaymentService {
+    @Override
+    public void payMoney() {
+        System.out.println("PhonePe: Processing UPI payment...");
+    }
+
+    @Override
+    public void getScratchCard() {
+        System.out.println("PhonePe: Generating scratch card...");
+    }
+
+    @Override
+    public void getCashBackAsCreditBalance() {
+        // PhonePe doesn't offer cashback!
+        throw new UnsupportedOperationException("Cashback not available on PhonePe");
+    }
+
+    @Override
+    public void processCardPayment() {
+        // PhonePe doesn't support card payments!
+        throw new UnsupportedOperationException("Card payments not supported by PhonePe");
+    }
+
+    @Override
+    public void generateEMI() {
+        // PhonePe doesn't offer EMI!
+        throw new UnsupportedOperationException("EMI services not available on PhonePe");
     }
 }
 ```
